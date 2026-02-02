@@ -39,15 +39,16 @@ void create_screen_main() {
         }
         {
             lv_obj_t *obj = lv_label_create(parent_obj);
+            objects.obj1 = obj;
             lv_obj_set_pos(obj, 35, 75);
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
             lv_obj_set_style_text_font(obj, &ui_font_radiant80, LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_obj_set_style_text_letter_space(obj, 2, LV_PART_MAIN | LV_STATE_DEFAULT);
-            lv_label_set_text(obj, "1234");
+            lv_label_set_text(obj, "");
         }
         {
             lv_obj_t *obj = lv_label_create(parent_obj);
-            objects.obj1 = obj;
+            objects.obj2 = obj;
             lv_obj_set_pos(obj, -16, -137);
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
             lv_obj_set_style_text_font(obj, &ui_font_radiant80, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -65,7 +66,7 @@ void create_screen_main() {
         {
             lv_obj_t *obj = lv_img_create(parent_obj);
             objects.obj0 = obj;
-            lv_obj_set_pos(obj, 57, 332);
+            lv_obj_set_pos(obj, 31, 361);
             lv_obj_set_size(obj, 64, 64);
             lv_img_set_src(obj, &img_fuel);
             lv_obj_clear_flag(obj, LV_OBJ_FLAG_ADV_HITTEST|LV_OBJ_FLAG_CLICK_FOCUSABLE|LV_OBJ_FLAG_GESTURE_BUBBLE|LV_OBJ_FLAG_PRESS_LOCK|LV_OBJ_FLAG_SCROLLABLE|LV_OBJ_FLAG_SCROLL_CHAIN_HOR|LV_OBJ_FLAG_SCROLL_CHAIN_VER|LV_OBJ_FLAG_SCROLL_ELASTIC|LV_OBJ_FLAG_SCROLL_MOMENTUM|LV_OBJ_FLAG_SCROLL_WITH_ARROW|LV_OBJ_FLAG_SNAPPABLE);
@@ -75,7 +76,7 @@ void create_screen_main() {
         }
         {
             lv_obj_t *obj = lv_label_create(parent_obj);
-            lv_obj_set_pos(obj, 41, 396);
+            lv_obj_set_pos(obj, 15, 425);
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
             lv_obj_set_style_text_font(obj, &ui_font_radiant48, LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_obj_set_style_text_letter_space(obj, 2, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -103,6 +104,17 @@ void create_screen_main() {
             lv_obj_set_style_align(obj, LV_ALIGN_RIGHT_MID, LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_label_set_text(obj, "");
         }
+        {
+            // odometer_1
+            lv_obj_t *obj = lv_label_create(parent_obj);
+            objects.odometer_1 = obj;
+            lv_obj_set_pos(obj, -174, 16);
+            lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_obj_set_style_text_font(obj, &ui_font_radiant40, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_text_letter_space(obj, 2, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_align(obj, LV_ALIGN_RIGHT_MID, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_label_set_text(obj, "");
+        }
     }
     
     tick_screen_main();
@@ -110,11 +122,20 @@ void create_screen_main() {
 
 void tick_screen_main() {
     {
-        const char *new_val = get_var_speed();
+        const char *new_val = get_var_rpm();
         const char *cur_val = lv_label_get_text(objects.obj1);
         if (strcmp(new_val, cur_val) != 0) {
             tick_value_change_obj = objects.obj1;
             lv_label_set_text(objects.obj1, new_val);
+            tick_value_change_obj = NULL;
+        }
+    }
+    {
+        const char *new_val = get_var_speed();
+        const char *cur_val = lv_label_get_text(objects.obj2);
+        if (strcmp(new_val, cur_val) != 0) {
+            tick_value_change_obj = objects.obj2;
+            lv_label_set_text(objects.obj2, new_val);
             tick_value_change_obj = NULL;
         }
     }
@@ -133,6 +154,15 @@ void tick_screen_main() {
         if (strcmp(new_val, cur_val) != 0) {
             tick_value_change_obj = objects.odometer;
             lv_label_set_text(objects.odometer, new_val);
+            tick_value_change_obj = NULL;
+        }
+    }
+    {
+        const char *new_val = get_var_fps();
+        const char *cur_val = lv_label_get_text(objects.odometer_1);
+        if (strcmp(new_val, cur_val) != 0) {
+            tick_value_change_obj = objects.odometer_1;
+            lv_label_set_text(objects.odometer_1, new_val);
             tick_value_change_obj = NULL;
         }
     }
@@ -161,12 +191,102 @@ void create_screen_main2() {
             lv_obj_set_pos(obj, 72, 192);
             lv_obj_set_size(obj, 80, 80);
         }
+        {
+            // odometer_2
+            lv_obj_t *obj = lv_label_create(parent_obj);
+            objects.odometer_2 = obj;
+            lv_obj_set_pos(obj, -244, 139);
+            lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_obj_set_style_text_font(obj, &ui_font_radiant40, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_text_letter_space(obj, 2, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_align(obj, LV_ALIGN_RIGHT_MID, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_label_set_text(obj, "");
+        }
     }
     
     tick_screen_main2();
 }
 
 void tick_screen_main2() {
+    {
+        const char *new_val = get_var_fps();
+        const char *cur_val = lv_label_get_text(objects.odometer_2);
+        if (strcmp(new_val, cur_val) != 0) {
+            tick_value_change_obj = objects.odometer_2;
+            lv_label_set_text(objects.odometer_2, new_val);
+            tick_value_change_obj = NULL;
+        }
+    }
+}
+
+void create_screen_main3() {
+    lv_obj_t *obj = lv_obj_create(0);
+    objects.main3 = obj;
+    lv_obj_set_pos(obj, 0, 0);
+    lv_obj_set_size(obj, 480, 480);
+    {
+        lv_obj_t *parent_obj = obj;
+        {
+            // odometer_3
+            lv_obj_t *obj = lv_label_create(parent_obj);
+            objects.odometer_3 = obj;
+            lv_obj_set_pos(obj, -318, -175);
+            lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_obj_set_style_text_font(obj, &ui_font_radiant40, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_text_letter_space(obj, 2, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_align(obj, LV_ALIGN_RIGHT_MID, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_label_set_text(obj, "");
+        }
+    }
+    
+    tick_screen_main3();
+}
+
+void tick_screen_main3() {
+    {
+        const char *new_val = get_var_fps();
+        const char *cur_val = lv_label_get_text(objects.odometer_3);
+        if (strcmp(new_val, cur_val) != 0) {
+            tick_value_change_obj = objects.odometer_3;
+            lv_label_set_text(objects.odometer_3, new_val);
+            tick_value_change_obj = NULL;
+        }
+    }
+}
+
+void create_screen_main4() {
+    lv_obj_t *obj = lv_obj_create(0);
+    objects.main4 = obj;
+    lv_obj_set_pos(obj, 0, 0);
+    lv_obj_set_size(obj, 480, 480);
+    {
+        lv_obj_t *parent_obj = obj;
+        {
+            // odometer_4
+            lv_obj_t *obj = lv_label_create(parent_obj);
+            objects.odometer_4 = obj;
+            lv_obj_set_pos(obj, -76, 150);
+            lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_obj_set_style_text_font(obj, &ui_font_radiant40, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_text_letter_space(obj, 2, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_align(obj, LV_ALIGN_RIGHT_MID, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_label_set_text(obj, "");
+        }
+    }
+    
+    tick_screen_main4();
+}
+
+void tick_screen_main4() {
+    {
+        const char *new_val = get_var_fps();
+        const char *cur_val = lv_label_get_text(objects.odometer_4);
+        if (strcmp(new_val, cur_val) != 0) {
+            tick_value_change_obj = objects.odometer_4;
+            lv_label_set_text(objects.odometer_4, new_val);
+            tick_value_change_obj = NULL;
+        }
+    }
 }
 
 
@@ -175,6 +295,8 @@ typedef void (*tick_screen_func_t)();
 tick_screen_func_t tick_screen_funcs[] = {
     tick_screen_main,
     tick_screen_main2,
+    tick_screen_main3,
+    tick_screen_main4,
 };
 void tick_screen(int screen_index) {
     tick_screen_funcs[screen_index]();
@@ -190,4 +312,6 @@ void create_screens() {
     
     create_screen_main();
     create_screen_main2();
+    create_screen_main3();
+    create_screen_main4();
 }

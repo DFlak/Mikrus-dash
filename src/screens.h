@@ -10,10 +10,17 @@ extern "C" {
 typedef struct _objects_t {
     lv_obj_t *main;
     lv_obj_t *main2;
+    lv_obj_t *main3;
+    lv_obj_t *main4;
     lv_obj_t *obj0;
     lv_obj_t *clock_label;
     lv_obj_t *odometer;
+    lv_obj_t *odometer_1;
     lv_obj_t *obj1;
+    lv_obj_t *obj2;
+    lv_obj_t *odometer_2;
+    lv_obj_t *odometer_3;
+    lv_obj_t *odometer_4;
 } objects_t;
 
 extern objects_t objects;
@@ -21,6 +28,8 @@ extern objects_t objects;
 enum ScreensEnum {
     SCREEN_ID_MAIN = 1,
     SCREEN_ID_MAIN2 = 2,
+    SCREEN_ID_MAIN3 = 3,
+    SCREEN_ID_MAIN4 = 4,
 };
 
 void create_screen_main();
@@ -28,6 +37,12 @@ void tick_screen_main();
 
 void create_screen_main2();
 void tick_screen_main2();
+
+void create_screen_main3();
+void tick_screen_main3();
+
+void create_screen_main4();
+void tick_screen_main4();
 
 void tick_screen_by_id(enum ScreensEnum screenId);
 void tick_screen(int screen_index);

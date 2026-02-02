@@ -130,6 +130,7 @@ void loop()
 
     speed_simulator.update();
     update_speed_display(speed_simulator.get_speed());
+    update_rpm_display(speed_simulator.get_rpm());
 
     odometer.set_speed(speed_simulator.get_speed());
     if (odometer.update())
@@ -138,7 +139,18 @@ void loop()
         Serial.printf("Display updated: %.1f km\n", odometer.get_odometer());
     }
 
-    lv_timer_handler();
-    ui_tick();
     delay(1);
+
+    uint32_t now_ui = millis();
+
+    // Update UI @60fps
+    static uint32_t last_ui_update = 0;
+
+    if (now_ui - last_ui_update >= 16)
+    {
+
+        lv_timer_handler();
+        ui_tick();
+        last_ui_update = now_ui;
+    }
 }

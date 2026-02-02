@@ -17,7 +17,9 @@ extern "C" {
 enum FlowGlobalVariables {
     FLOW_GLOBAL_VARIABLE_CLOCK_TIME = 0,
     FLOW_GLOBAL_VARIABLE_ODOMETER = 1,
-    FLOW_GLOBAL_VARIABLE_SPEED = 2
+    FLOW_GLOBAL_VARIABLE_SPEED = 2,
+    FLOW_GLOBAL_VARIABLE_FPS = 3,
+    FLOW_GLOBAL_VARIABLE_RPM = 4
 };
 
 // Native global variables
@@ -32,6 +34,10 @@ extern const char *get_var_odometer();
 extern void set_var_odometer(const char *value);
 extern const char *get_var_speed();
 extern void set_var_speed(const char *value);
+extern const char *get_var_fps();
+extern void set_var_fps(const char *value);
+extern const char *get_var_rpm();
+extern void set_var_rpm(const char *value);
 
 
 #ifdef __cplusplus

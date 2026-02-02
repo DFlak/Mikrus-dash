@@ -21,7 +21,7 @@ static TouchHandler touch_handler;
 static uint8_t current_screen = 0;
 static uint32_t last_gesture_time = 0;
 static const uint32_t GESTURE_DEBOUNCE_MS = 300;
-static const uint8_t MAX_SCREENS = 2;
+static const uint8_t MAX_SCREENS = 4;
 
 static uint32_t last_touch_time = 0;
 static const uint32_t TOUCH_POLL_INTERVAL = 20;
@@ -89,6 +89,16 @@ void navigate_screen(int8_t direction)
         loadScreen(SCREEN_ID_MAIN2);
         if (TOUCH_DEBUG)
             Serial.println("Loaded MAIN2 screen");
+        break;
+    case 2:
+        loadScreen(SCREEN_ID_MAIN3);
+        if (TOUCH_DEBUG)
+            Serial.println("Loaded MAIN3 screen");
+        break;
+    case 3:
+        loadScreen(SCREEN_ID_MAIN4);
+        if (TOUCH_DEBUG)
+            Serial.println("Loaded MAIN4 screen");
         break;
     }
 }
