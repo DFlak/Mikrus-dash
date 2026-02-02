@@ -19,7 +19,8 @@ enum FlowGlobalVariables {
     FLOW_GLOBAL_VARIABLE_ODOMETER = 1,
     FLOW_GLOBAL_VARIABLE_SPEED = 2,
     FLOW_GLOBAL_VARIABLE_FPS = 3,
-    FLOW_GLOBAL_VARIABLE_RPM = 4
+    FLOW_GLOBAL_VARIABLE_RPM = 4,
+    FLOW_GLOBAL_VARIABLE_ARROW_ROTATION = 5
 };
 
 // Native global variables
@@ -38,6 +39,8 @@ extern const char *get_var_fps();
 extern void set_var_fps(const char *value);
 extern const char *get_var_rpm();
 extern void set_var_rpm(const char *value);
+extern int32_t get_var_arrow_rotation();
+extern void set_var_arrow_rotation(int32_t value);
 
 
 #ifdef __cplusplus

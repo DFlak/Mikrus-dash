@@ -14,6 +14,7 @@ extern const lv_img_dsc_t img_clt;
 extern const lv_img_dsc_t img_iat;
 extern const lv_img_dsc_t img_odo;
 extern const lv_img_dsc_t img_fuel;
+extern const lv_img_dsc_t img_strzalka;
 
 #ifndef EXT_IMG_DESC_T
 #define EXT_IMG_DESC_T
@@ -23,7 +24,7 @@ typedef struct _ext_img_desc_t {
 } ext_img_desc_t;
 #endif
 
-extern const ext_img_desc_t images[7];
+extern const ext_img_desc_t images[8];
 
 
 #ifdef __cplusplus

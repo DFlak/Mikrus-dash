@@ -11,6 +11,7 @@
 #include "eeprom_manager.h"
 #include "odometer.h"
 #include "speed_simulator.h"
+#include "compass_simulator.h"
 
 #include <string>
 
@@ -153,4 +154,13 @@ void loop()
         ui_tick();
         last_ui_update = now_ui;
     }
+
+    // === COMPASS ===
+    compass_simulator.update();
+    update_bearing_display(compass_simulator.get_bearing());
+    update_direction_display(compass_simulator.get_direction());
+    int32_t rotation_value = (int32_t)(compass_simulator.get_bearing() * 10);
+    set_var_arrow_rotation(rotation_value);
+
+    Serial.printf("Bearing: %.1f°, Rotation value: %ld\n", compass_simulator.get_bearing(), rotation_value);
 }
