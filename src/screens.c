@@ -31,7 +31,7 @@ void create_screen_main() {
         }
         {
             lv_obj_t *obj = lv_label_create(parent_obj);
-            lv_obj_set_pos(obj, 355, 17);
+            lv_obj_set_pos(obj, 366, 20);
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
             lv_obj_set_style_text_font(obj, &ui_font_radiant48, LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_obj_set_style_text_letter_space(obj, 2, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -47,11 +47,13 @@ void create_screen_main() {
         }
         {
             lv_obj_t *obj = lv_label_create(parent_obj);
-            lv_obj_set_pos(obj, 337, 75);
+            objects.obj1 = obj;
+            lv_obj_set_pos(obj, -16, -137);
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
             lv_obj_set_style_text_font(obj, &ui_font_radiant80, LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_obj_set_style_text_letter_space(obj, 2, LV_PART_MAIN | LV_STATE_DEFAULT);
-            lv_label_set_text(obj, "123");
+            lv_obj_set_style_align(obj, LV_ALIGN_RIGHT_MID, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_label_set_text(obj, "");
         }
         {
             lv_obj_t *obj = lv_img_create(parent_obj);
@@ -80,12 +82,26 @@ void create_screen_main() {
             lv_label_set_text(obj, "49%");
         }
         {
+            // clock_label
             lv_obj_t *obj = lv_label_create(parent_obj);
-            lv_obj_set_pos(obj, 367, 396);
+            objects.clock_label = obj;
+            lv_obj_set_pos(obj, 0, 185);
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
             lv_obj_set_style_text_font(obj, &ui_font_radiant40, LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_obj_set_style_text_letter_space(obj, 2, LV_PART_MAIN | LV_STATE_DEFAULT);
-            lv_label_set_text(obj, "11");
+            lv_obj_set_style_align(obj, LV_ALIGN_RIGHT_MID, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_label_set_text(obj, "");
+        }
+        {
+            // odometer
+            lv_obj_t *obj = lv_label_create(parent_obj);
+            objects.odometer = obj;
+            lv_obj_set_pos(obj, 0, 217);
+            lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_obj_set_style_text_font(obj, &ui_font_radiant40, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_text_letter_space(obj, 2, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_align(obj, LV_ALIGN_RIGHT_MID, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_label_set_text(obj, "");
         }
     }
     
@@ -93,6 +109,33 @@ void create_screen_main() {
 }
 
 void tick_screen_main() {
+    {
+        const char *new_val = get_var_speed();
+        const char *cur_val = lv_label_get_text(objects.obj1);
+        if (strcmp(new_val, cur_val) != 0) {
+            tick_value_change_obj = objects.obj1;
+            lv_label_set_text(objects.obj1, new_val);
+            tick_value_change_obj = NULL;
+        }
+    }
+    {
+        const char *new_val = get_var_clock_time();
+        const char *cur_val = lv_label_get_text(objects.clock_label);
+        if (strcmp(new_val, cur_val) != 0) {
+            tick_value_change_obj = objects.clock_label;
+            lv_label_set_text(objects.clock_label, new_val);
+            tick_value_change_obj = NULL;
+        }
+    }
+    {
+        const char *new_val = get_var_odometer();
+        const char *cur_val = lv_label_get_text(objects.odometer);
+        if (strcmp(new_val, cur_val) != 0) {
+            tick_value_change_obj = objects.odometer;
+            lv_label_set_text(objects.odometer, new_val);
+            tick_value_change_obj = NULL;
+        }
+    }
 }
 
 void create_screen_main2() {

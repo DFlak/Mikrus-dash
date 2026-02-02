@@ -11,6 +11,9 @@ typedef struct _objects_t {
     lv_obj_t *main;
     lv_obj_t *main2;
     lv_obj_t *obj0;
+    lv_obj_t *clock_label;
+    lv_obj_t *odometer;
+    lv_obj_t *obj1;
 } objects_t;
 
 extern objects_t objects;
