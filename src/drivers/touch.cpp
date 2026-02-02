@@ -1,51 +1,35 @@
-// ===== USE TAMC_GT911 LIBRARY WITH LVGL INPUT DEVICE =====
-// Library automatically installed via platformio.ini
-// Correct API: touch.read(), touch.touches, touch.points[]
-// This code bridges GT911 hardware -> LVGL input device for button clicks
-// ===================================================================
+#define TOUCH_DEBUG true
 
-#define TOUCH_DEBUG true // Set to false to disable debug output
-
-#include <TAMC_GT911.h>
+#include <Arduino.h>
 #include <lvgl.h>
+#include <TAMC_GT911.h>
+#include "../touch_handler.h"
 #include "ui.h"
 #include "screens.h"
 
-// GT911: SDA=19, SCL=45, INT=-1, RST=-1, Width=480, Height=480
-// (INT and RST not used, set to -1)
 TAMC_GT911 touch = TAMC_GT911(19, 45, -1, -1, 480, 480);
 
-// LVGL input device - MUST BE STATIC (not on stack!)
 static lv_indev_t *indev_touchpad = NULL;
-static lv_indev_drv_t indev_drv; // ← FIX: Static, not local variable
+static lv_indev_drv_t indev_drv;
 
-// Shared touch state (updated by touch_update, read by touchpad_read)
 static int16_t current_touch_x = 0;
 static int16_t current_touch_y = 0;
 static bool current_touch_pressed = false;
 
-// Swipe navigation state
-static uint8_t current_screen = 0; // 0 = MAIN, 1 = MAIN2
-static int16_t touch_start_x = 0;
-static int16_t touch_start_y = 0;
-static int16_t touch_last_x = 0;
-static int16_t touch_last_y = 0;
-static bool touch_active = false;
-const int16_t SWIPE_THRESHOLD = 50;
-const int16_t VERTICAL_THRESHOLD = 30;
+static TouchHandler touch_handler;
 
-// Touch state
+static uint8_t current_screen = 0;
+static uint32_t last_gesture_time = 0;
+static const uint32_t GESTURE_DEBOUNCE_MS = 300;
+static const uint8_t MAX_SCREENS = 2;
+
 static uint32_t last_touch_time = 0;
-const uint32_t TOUCH_POLL_INTERVAL = 20;
+static const uint32_t TOUCH_POLL_INTERVAL = 20;
 
-// Forward declare screen objects - defined in screens.c
 extern objects_t objects;
 
-// ===== LVGL INPUT DEVICE CALLBACK =====
-// Called by LVGL to read touch state - uses shared state from touch_update()
 static void touchpad_read(lv_indev_drv_t *indev_drv, lv_indev_data_t *data)
 {
-    // Simply report the current touch state (updated by touch_update)
     if (current_touch_pressed)
     {
         data->state = LV_INDEV_STATE_PRESSED;
@@ -55,172 +39,168 @@ static void touchpad_read(lv_indev_drv_t *indev_drv, lv_indev_data_t *data)
         data->state = LV_INDEV_STATE_RELEASED;
     }
 
-    // Report coordinates to LVGL (needed for button detection)
     data->point.x = current_touch_x;
     data->point.y = current_touch_y;
 }
 
-// ===== SWIPE DETECTION & TOUCH STATE UPDATE =====
+void navigate_screen(int8_t direction)
+{
+    uint32_t now = millis();
+
+    if (now - last_gesture_time < GESTURE_DEBOUNCE_MS)
+    {
+        if (TOUCH_DEBUG)
+            Serial.println("[DEBOUNCED] Swipe too soon");
+        return;
+    }
+
+    last_gesture_time = now;
+
+    int16_t next_screen = (int16_t)current_screen + direction;
+
+    if (next_screen < 0)
+    {
+        if (TOUCH_DEBUG)
+            Serial.println("Already at first screen");
+        return;
+    }
+
+    if (next_screen >= MAX_SCREENS)
+    {
+        if (TOUCH_DEBUG)
+            Serial.println("Already at last screen");
+        return;
+    }
+
+    current_screen = (uint8_t)next_screen;
+
+    if (TOUCH_DEBUG)
+        Serial.printf("Navigating to screen %d\n", current_screen);
+
+    switch (current_screen)
+    {
+    case 0:
+        loadScreen(SCREEN_ID_MAIN);
+        if (TOUCH_DEBUG)
+            Serial.println("Loaded MAIN screen");
+        break;
+
+    case 1:
+        loadScreen(SCREEN_ID_MAIN2);
+        if (TOUCH_DEBUG)
+            Serial.println("Loaded MAIN2 screen");
+        break;
+    }
+}
+
 void touch_update(void)
 {
     uint32_t now = millis();
+
     if (now - last_touch_time < TOUCH_POLL_INTERVAL)
-    {
         return;
-    }
+
     last_touch_time = now;
 
-    // Read hardware only once per poll interval
     touch.read();
 
     if (touch.touches > 0)
     {
-        // Touch detected - update shared state for LVGL callback
-        current_touch_x = touch.points[0].x;
-        current_touch_y = touch.points[0].y;
-        current_touch_pressed = true;
-
         int16_t touch_x = touch.points[0].x;
         int16_t touch_y = touch.points[0].y;
 
-        if (!touch_active)
-        {
-            // First touch - store start position for swipe detection
-            touch_active = true;
-            touch_start_x = touch_x;
-            touch_start_y = touch_y;
-            touch_last_x = touch_x;
-            touch_last_y = touch_y;
+        current_touch_x = touch_x;
+        current_touch_y = touch_y;
+        current_touch_pressed = true;
 
-            if (TOUCH_DEBUG)
-            {
-                Serial.print("  [Touch START] x=");
-                Serial.print(touch_start_x);
-                Serial.print(" y=");
-                Serial.println(touch_start_y);
-            }
-        }
-        else
-        {
-            // Continuous motion - update last position
-            touch_last_x = touch_x;
-            touch_last_y = touch_y;
-
-            if (TOUCH_DEBUG)
-            {
-                int16_t dx = touch_x - touch_start_x;
-                int16_t dy = touch_y - touch_start_y;
-                Serial.print("  [Touch MOVE] x=");
-                Serial.print(touch_x);
-                Serial.print(" y=");
-                Serial.print(touch_y);
-                Serial.print(" (Δdx=");
-                Serial.print(dx);
-                Serial.print(" Δdy=");
-                Serial.println(dy);
-            }
-        }
+        touch_handler.update_touch(touch_x, touch_y, true);
     }
     else
     {
-        // No touch detected
-        current_touch_pressed = false;
-
-        if (touch_active)
+        if (current_touch_pressed)
         {
-            // Touch was released - check for swipe
-            int16_t dx = touch_last_x - touch_start_x;
-            int16_t dy = touch_last_y - touch_start_y;
+            current_touch_pressed = false;
+            touch_handler.update_touch(0, 0, false);
 
-            if (TOUCH_DEBUG)
+            gesture_t detected = touch_handler.get_gesture();
+
+            if (detected != GESTURE_NONE)
             {
-                Serial.print("  [Touch RELEASE] dx=");
-                Serial.print(dx);
-                Serial.print(" dy=");
-                Serial.print(dy);
-                Serial.print(" (thresholds: horiz≥");
-                Serial.print(SWIPE_THRESHOLD);
-                Serial.print(", vert≤");
-                Serial.print(VERTICAL_THRESHOLD);
-                Serial.println(")");
+                switch (detected)
+                {
+                case GESTURE_LEFT:
+                    if (TOUCH_DEBUG)
+                        Serial.println("LEFT swipe - next screen");
+                    navigate_screen(1);
+                    break;
+
+                case GESTURE_RIGHT:
+                    if (TOUCH_DEBUG)
+                        Serial.println("RIGHT swipe - previous screen");
+                    navigate_screen(-1);
+                    break;
+
+                case GESTURE_UP:
+                    if (TOUCH_DEBUG)
+                        Serial.println("UP swipe");
+                    break;
+
+                case GESTURE_DOWN:
+                    if (TOUCH_DEBUG)
+                        Serial.println("DOWN swipe");
+                    break;
+
+                case GESTURE_NONE:
+                default:
+                    break;
+                }
             }
 
-            // Swipe must be primarily horizontal
-            if (abs(dx) >= SWIPE_THRESHOLD && abs(dy) <= VERTICAL_THRESHOLD)
-            {
-                if (dx < 0)
-                { // Swipe LEFT → Screen 2 (MAIN2)
-                    if (current_screen == 0)
-                    {
-                        current_screen = 1;
-                        loadScreen(SCREEN_ID_MAIN2);
-                        Serial.println("✓ Swiped LEFT → Screen 2");
-                    }
-                }
-                else
-                { // Swipe RIGHT → Screen 1 (MAIN)
-                    if (current_screen == 1)
-                    {
-                        current_screen = 0;
-                        loadScreen(SCREEN_ID_MAIN);
-                        Serial.println("✓ Swiped RIGHT → Screen 1");
-                    }
-                }
-            }
-            else if (TOUCH_DEBUG)
-            {
-                if (abs(dx) < SWIPE_THRESHOLD)
-                {
-                    Serial.print("  → Horizontal too small (");
-                    Serial.print(abs(dx));
-                    Serial.println("px)");
-                }
-                if (abs(dy) > VERTICAL_THRESHOLD)
-                {
-                    Serial.print("  → Vertical too large (");
-                    Serial.print(abs(dy));
-                    Serial.println("px)");
-                }
-            }
-            touch_active = false;
+            touch_handler.clear_gesture();
         }
     }
 }
 
 void touch_init(void)
 {
-    Serial.println("Initializing TAMC_GT911 touch...");
+    Serial.println("\n=== TOUCH INIT ===");
+    Serial.println("Initializing GT911...");
 
-    // TAMC_GT911 begins on I2C bus
     touch.begin();
+    Serial.println("GT911 ready");
 
-    Serial.println("✓ GT911 ready");
-    Serial.println("✓ Swipe left/right to navigate screens");
+    GestureConfig gesture_config;
+    gesture_config.min_distance = 100;
+    gesture_config.min_velocity = 5;
+    gesture_config.velocity_check_interval = 50;
+    gesture_config.horizontal_weight = 1;
+    gesture_config.vertical_weight = 1;
+
+    touch_handler.init(gesture_config);
+    Serial.println("TouchHandler initialized (100px threshold)");
 
     if (TOUCH_DEBUG)
     {
-        Serial.println("[DEBUG MODE ENABLED]");
-        Serial.print("  Swipe thresholds: horizontal≥");
-        Serial.print(SWIPE_THRESHOLD);
-        Serial.print("px, vertical≤");
-        Serial.print(VERTICAL_THRESHOLD);
-        Serial.println("px");
+        Serial.println("[DEBUG MODE]");
+        Serial.println("Left swipe (100px) -> next screen");
+        Serial.println("Right swipe (100px) -> prev screen");
+        Serial.println("Debounce: 300ms");
     }
+
+    Serial.println("===================\n");
 }
 
 void touch_register_lvgl(void)
 {
-    Serial.println("Registering LVGL input device...");
+    Serial.println("Registering LVGL input...");
 
-    // Initialize LVGL input device driver (using static variable)
     lv_indev_drv_init(&indev_drv);
     indev_drv.type = LV_INDEV_TYPE_POINTER;
     indev_drv.read_cb = touchpad_read;
 
-    // Register the input device
     indev_touchpad = lv_indev_drv_register(&indev_drv);
 
-    Serial.println("✓ LVGL input device registered - buttons are now clickable!");
+    Serial.println("LVGL input registered\n");
 }
 
 uint8_t get_current_screen(void)

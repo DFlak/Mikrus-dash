@@ -11,6 +11,7 @@ extern const lv_font_t ui_font_radiant;
 extern const lv_font_t ui_font_radiant48;
 extern const lv_font_t ui_font_radianttt64;
 extern const lv_font_t ui_font_radiant80;
+extern const lv_font_t ui_font_radiant40;
 
 
 #ifdef __cplusplus

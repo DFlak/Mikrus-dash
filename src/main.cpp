@@ -1,19 +1,16 @@
 #include <Arduino_GFX_Library.h>
 #include <lvgl.h>
-#include "ui.h" // <-- Add
-// #include "C:\Users\dflak\eez-projects\speedo\src\ui\actions.h" // <-- Add
-// #include "C:\Users\dflak\eez-projects\speedo\src\ui\fonts.h"   // <-- Add
-// #include "C:\Users\dflak\eez-projects\speedo\src\ui\images.c"  // <-- Add
-// #include "C:\Users\dflak\eez-projects\speedo\src\ui\images.h"  // <-- Add
-// #include "C:\Users\dflak\eez-projects\speedo\src\ui\screens.c" // <-- Add
-// #include "C:\Users\dflak\eez-projects\speedo\src\ui\screens.h" // <-- Add
-// #include "C:\Users\dflak\eez-projects\speedo\src\ui\structs.h" // <-- Add
-// #include "C:\Users\dflak\eez-projects\speedo\src\ui\styles.c"  // <-- Add
-// #include "C:\Users\dflak\eez-projects\speedo\src\ui\styles.h"  // <-- Add
-// #include "C:\Users\dflak\eez-projects\speedo\src\ui\ui.c"      // <-- Add
-#include "vars.h" // <-- Add
+#include "ui.h"
+#include "vars.h"
 #include "drivers/touch.h"
+#include "touch_handler.h"
 #include <string>
+
+TouchHandler touch_handler;
+uint8_t current_screen = 0;               // Which screen are we on? (0 or 1)
+const uint8_t max_screens = 2;            // Total number of screens (update this when you add more)
+uint32_t last_gesture_time = 0;           // When was the last gesture?
+const uint32_t gesture_debounce_ms = 300; // Wait 300ms before allowing next gesture
 int i;
 std::string predkosc_string;
 
@@ -28,8 +25,7 @@ extern "C" void set_var_predkosc_string(const char *value)
 }
 // Define the variable to be incremented
 // Set the time interval in milliseconds (e.g., 100ms)
-const long interval = 30000;
-
+const long interval = 300;
 // Variable to store the last time the action was performed
 unsigned long lastTime = 0;
 int32_t predkosc;
@@ -61,12 +57,6 @@ Arduino_ST7701_RGBPanel *gfx = new Arduino_ST7701_RGBPanel(
 static lv_disp_draw_buf_t draw_buf;
 static lv_color_t buf[480 * 10];
 
-// // LVGL gauge and related pointers
-// static lv_obj_t *gauge;
-// static lv_meter_scale_t *scale;
-// static lv_meter_indicator_t *needle;
-// static lv_obj_t *value_label;
-
 // Flush callback (pixel-by-pixel)
 void my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p)
 {
@@ -86,9 +76,8 @@ void touch_register_lvgl(void);
 void setup()
 {
     Serial.begin(115200);
-    touch_init(); // ✅ Initialize GT911 hardware
+    touch_init();
 
-    //  Initialize your display
     gfx->begin();
     gfx->fillScreen(BLACK);
 #ifdef GFX_BL
@@ -107,7 +96,7 @@ void setup()
     disp_drv.draw_buf = &draw_buf;
     lv_disp_drv_register(&disp_drv);
     ui_init();
-    touch_register_lvgl(); // ✅ Register after screens ready
+    touch_register_lvgl();
     Serial.println("Setup complete!");
 }
 
@@ -119,7 +108,6 @@ void loop()
     // Check if the desired interval has passed
     if (currentTime - lastTime >= interval)
     {
-
         // Update the last time to the current time
         lastTime = currentTime;
         // Increment the variable
