@@ -207,11 +207,14 @@ void create_screen_main3() {
     {
         lv_obj_t *parent_obj = obj;
         {
+            // strzalka
             lv_obj_t *obj = lv_img_create(parent_obj);
+            objects.strzalka = obj;
             lv_obj_set_pos(obj, 160, 120);
             lv_obj_set_size(obj, 160, 240);
             lv_img_set_src(obj, &img_strzalka);
-            lv_img_set_angle(obj, 450);
+            lv_img_set_angle(obj, 4);
+            lv_obj_add_event_cb(obj, action_rotate_arrow, LV_EVENT_VALUE_CHANGED, (void *)0);
         }
     }
     

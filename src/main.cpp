@@ -1,9 +1,11 @@
+#include <Arduino.h>
 #include <Arduino_GFX_Library.h>
 #include <lvgl.h>
 #include "ui.h"
 #include "vars.h"
 #include "custom_vars.h"
 #include "time_manager.h"
+#include "actions.h"
 
 #include "drivers/touch.h"
 #include "touch_handler.h"
@@ -16,17 +18,22 @@
 #include <string>
 
 TouchHandler touch_handler;
-uint8_t current_screen = 0;               // Which screen are we on? (0 or 1)
-const uint8_t max_screens = 2;            // Total number of screens (update this when you add more)
-uint32_t last_gesture_time = 0;           // When was the last gesture?
-const uint32_t gesture_debounce_ms = 300; // Wait 300ms before allowing next gesture
+uint8_t current_screen = 0;
+const uint8_t max_screens = 2;
+uint32_t last_gesture_time = 0;
+const uint32_t gesture_debounce_ms = 300;
 int i;
 
+// Compass rotation variables
+static float last_bearing = -1.0f;
+const float BEARING_THRESHOLD = 2.0f; // Reduced for smoother updates
+static unsigned long last_time = 0;
+static int loop_count = 0;
+
 const long interval = 10;
-// Variable to store the last time the action was performed
 unsigned long lastTime = 0;
 #define GFX_BL 38
-// Your existing display setup
+
 Arduino_ESP32RGBPanel *bus = new Arduino_ESP32RGBPanel(
     39, 48, 47,
     18, 17, 16, 21,
@@ -39,11 +46,9 @@ Arduino_ST7701_RGBPanel *gfx = new Arduino_ST7701_RGBPanel(
     st7701_type1_init_operations, sizeof(st7701_type1_init_operations), true,
     10, 8, 50, 10, 8, 20);
 
-// LVGL buffers and driver
 static lv_disp_draw_buf_t draw_buf;
 static lv_color_t buf[480 * 10];
 
-// Flush callback (pixel-by-pixel)
 void my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p)
 {
     uint32_t w = area->x2 - area->x1 + 1;
@@ -57,38 +62,36 @@ void my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color
     }
     lv_disp_flush_ready(disp);
 }
+
 void touch_register_lvgl(void);
+
 void update_clock_display()
 {
     char time_buffer[16];
     time_manager.get_time_string(time_buffer, sizeof(time_buffer));
-
-    // Update the label text
     lv_label_set_text(objects.clock_label, time_buffer);
 }
+
 void setup()
 {
     Serial.begin(115200);
     delay(100);
+
     eeprom_manager.init();
     float saved_odometer = eeprom_manager.read_odometer();
 
-    // Add a check - if invalid, start from 0
     if (isnan(saved_odometer) || saved_odometer < 0)
     {
         saved_odometer = 0.0f;
         Serial.println("Invalid EEPROM value, starting from 0.0 km");
     }
-    // Initialize clock
+
     time_manager.init();
     set_var_clock_time("00:00:00");
-
-    // Initialize EEPROM and odometer
 
     odometer.init(saved_odometer);
     update_odometer_display(odometer.get_odometer());
 
-    // Initialize speed simulator
     randomSeed(millis());
 
     touch_init();
@@ -101,7 +104,6 @@ void setup()
     digitalWrite(GFX_BL, HIGH);
 #endif
 
-    // LVGL init
     lv_init();
     lv_disp_draw_buf_init(&draw_buf, buf, NULL, 480 * 10);
     static lv_disp_drv_t disp_drv;
@@ -112,23 +114,26 @@ void setup()
     disp_drv.draw_buf = &draw_buf;
     lv_disp_drv_register(&disp_drv);
     ui_init();
+
     Serial.println("Setup complete!");
 }
 
 void loop()
 {
+    // === CLOCK UPDATE ===
     static uint32_t last_clock_update = 0;
     if (millis() - last_clock_update > 500)
-    { // Update twice per second
+    {
         char time_buffer[16];
         time_manager.get_time_string(time_buffer, sizeof(time_buffer));
         set_var_clock_time(time_buffer);
-
         last_clock_update = millis();
     }
-    touch_update();
-    unsigned long currentTime = millis();
 
+    // === TOUCH INPUT ===
+    touch_update();
+
+    // === SPEED & ODOMETER ===
     speed_simulator.update();
     update_speed_display(speed_simulator.get_speed());
     update_rpm_display(speed_simulator.get_rpm());
@@ -137,30 +142,42 @@ void loop()
     if (odometer.update())
     {
         update_odometer_display(odometer.get_odometer());
-        Serial.printf("Display updated: %.1f km\n", odometer.get_odometer());
     }
 
-    delay(1);
-
-    uint32_t now_ui = millis();
-
-    // Update UI @60fps
+    // === UI UPDATE @60fps ===
     static uint32_t last_ui_update = 0;
-
+    uint32_t now_ui = millis();
     if (now_ui - last_ui_update >= 16)
     {
-
         lv_timer_handler();
         ui_tick();
         last_ui_update = now_ui;
     }
 
-    // === COMPASS ===
+    // === COMPASS ROTATION ===
     compass_simulator.update();
-    update_bearing_display(compass_simulator.get_bearing());
-    update_direction_display(compass_simulator.get_direction());
-    int32_t rotation_value = (int32_t)(compass_simulator.get_bearing() * 10);
-    set_var_arrow_rotation(rotation_value);
+    Serial.printf("Raw bearing: %.2f°\n", compass_simulator.get_bearing());
+    float current_bearing = compass_simulator.get_bearing();
+    float delta = fabsf(current_bearing - last_bearing);
 
-    Serial.printf("Bearing: %.1f°, Rotation value: %ld\n", compass_simulator.get_bearing(), rotation_value);
+    if (delta > BEARING_THRESHOLD || last_bearing < 0)
+    {
+        last_bearing = current_bearing;
+        int32_t rotation_value = (int32_t)(current_bearing * 10); // Keep this
+        set_var_arrow_rotation(rotation_value);
+
+        lv_event_t dummy_event = {0};
+        action_rotate_arrow(&dummy_event);
+    }
+    // === FPS COUNTER ===
+    unsigned long now = millis();
+    if (now - last_time > 1000)
+    {
+        Serial.printf("Loop FPS: %d\n", loop_count);
+        loop_count = 0;
+        last_time = now;
+    }
+    loop_count++;
+
+    delay(1);
 }

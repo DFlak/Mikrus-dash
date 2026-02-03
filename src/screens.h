@@ -18,6 +18,7 @@ typedef struct _objects_t {
     lv_obj_t *odometer_1;
     lv_obj_t *obj1;
     lv_obj_t *obj2;
+    lv_obj_t *strzalka;
 } objects_t;
 
 extern objects_t objects;
